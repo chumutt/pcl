@@ -1,0 +1,40 @@
+:PROPERTIES:
+:ID:       5db4ee1f-f834-4391-a1f8-27558da468df
+:END:
+#+title: Practical Common Lisp
+#+description: notes
+* chapter 8
+:PROPERTIES:
+:ID:       bbf6cfad-e0c5-4fec-a2ee-1412530f8ddd
+:END:
+#+name: fprimep
+#+begin_src lisp :tangle no :exports code
+(defun primep (number)
+  "Checks to see if a number is prime."
+  (when (> number 1)
+    (loop for fac from 2 to (isqrt number)
+          never (zerop (mod number fac)))))
+#+end_src
+
+#+name: fnextprime
+#+begin_src lisp :tangle no :exports code
+(defun next-prime (number)
+  (loop for n from number when (primep n) return n))
+#+end_src
+
+#+name: mdoprimes
+#+begin_src lisp :tangle no :exports code
+(defmacro do-primes ((var start end) &body body)
+  `(do ((,var (next-prime ,start) (next-prime (1+ ,var))))
+       ((> ,var ,end))
+     ,@body))
+#+end_src
+
+#+name: doprimes
+#+begin_src lisp :tangle ch8/doprimes.lisp :mkdirp yes :noweb yes :exports code
+<<fprimep>>
+
+<<fnextprime>>
+
+<<mdoprimes>>
+#+end_src
