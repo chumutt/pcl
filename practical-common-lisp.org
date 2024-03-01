@@ -38,3 +38,6 @@
 
 <<mdoprimes>>
 #+end_src
+
+#+RESULTS: doprimes
+: DO-PRIMES
