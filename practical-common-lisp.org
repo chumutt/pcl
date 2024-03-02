@@ -39,5 +39,34 @@
 <<mdoprimes>>
 #+end_src
 
-#+RESULTS: doprimes
-: DO-PRIMES
+
+* chapter 9: building a unit testing framework
+:PROPERTIES:
+:ID:       e7dd5257-5c56-441f-8ad8-86fb62b78dff
+:END:
+
+#+name: freportresult
+#+begin_src lisp
+(defun report-result (result form)
+  (format t "~:[FAIL~;pass~] ... ~a~%" result form))
+#+end_src
+
+#+RESULTS: freportresult
+: REPORT-RESULT
+
+#+name: mcheck
+#+begin_src lisp
+(defmacro check (&body forms)
+  `(progn
+     ,@(loop for f in forms collect `(report-result ,f ',f))))
+#+end_src
+
+#+RESULTS: mcheck
+: CHECK
+
+#+begin_src lisp :tangle ch9/tester.lisp :mkdirp yes :noweb yes :exports code
+<<freportresult>>
+
+<<mcheck>>
+#+end_src
+
