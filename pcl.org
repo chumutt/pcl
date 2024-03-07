@@ -3,6 +3,198 @@
 :END:
 #+title: Practical Common Lisp
 #+description: notes
+* chapter 3: practical: a simple database
+:PROPERTIES:
+:ID:       3e2e14cb-7b90-481f-b541-227957d25a15
+:END:
+
+#+name: cddb-paramvars
+#+begin_src lisp :tangle no :exports code
+(defvar *db* nil)
+#+end_src
+
+#+name: cddb-make-cd
+#+begin_src lisp :tangle no :exports code
+(defun make-cd (title artist rating ripped)
+  (list :title title
+        :artist artist
+        :rating rating
+        :ripped ripped))
+#+end_src
+
+#+name: cddb-add-record
+#+begin_src lisp :tangle no :exports code
+(defun add-record (cd)
+  (push cd *db*))
+#+end_src
+
+#+name: cddb-dump-db
+#+begin_src lisp :tangle no :exports code
+(defun dump-db ()
+  (dolist (cd *db*)
+    (format t "~{~a:~10t~a~%~}~%" cd)))
+#+end_src
+
+#+name: cddb-prompt-read
+#+begin_src lisp :tangle no :exports code
+(defun prompt-read (prompt)
+  (format *query-io* "~a: " prompt)
+  (force-output *query-io*)
+  (read-line *query-io*))
+#+end_src
+
+#+name: cddb-prompt-for-cd
+#+begin_src lisp :tangle no :exports code
+(defun prompt-for-cd ()
+  (make-cd
+   (prompt-read "Title: ")
+   (prompt-read "Artist: ")
+   (or (parse-integer (prompt-read "Rating: ") :junk-allowed t) 0)
+   (y-or-n-p "Ripped? [y/n]: ")))
+#+end_src
+
+#+name: cddb-add-cds
+#+begin_src lisp :tangle no :exports code
+(defun add-cds ()
+  "Add a bunch of CDs at once."
+  (loop (add-record (prompt-for-cd))
+        (if (not (y-or-n-p "Another? [y/n]: "))
+               (return))))
+#+end_src
+
+#+name: cddb-save-db
+#+begin_src lisp :tangle no :exports code
+(defun save-db (filename)
+  (with-open-file (out filename
+                       :direction :output
+                       :if-exists :supersede)
+    (with-standard-io-syntax
+      (print *db* out))))
+#+end_src
+
+#+begin_quote
+This time you don't need to specify ~:direction~ in the options to ~WITH-OPEN-FILE~, since you want the default of ~:input~. And instead of printing, you use the function ~READ~ to read from the stream ~in~.
+#+end_quote
+
+#+name: cddb-load-db
+#+begin_src lisp :tangle no :exports code
+(defun load-db (filename)
+  (with-open-file (in filename)
+    (with-standard-io-syntax
+      (setf *db* (read in)))))
+#+end_src
+
+#+name: cddb-select-by-artist
+#+begin_src lisp :tangle no :exports code
+(defun select-by-artist (artist)
+  (remove-if-not
+   #'(lambda (cd) (equal (getf cd :artist) artist))
+   *db*))
+#+end_src
+
+#+name: cddb-select
+#+begin_src lisp :tangle no :exports code
+(defun select (selector-fn)
+  (remove-if-not selector-fn *db*))
+#+end_src
+
+#+name: cddb-artist-selector
+#+begin_src lisp :tangle no :exports code
+(defun artist-selector (artist)
+  "Creates an anonymous function."
+  #'(lambda (cd) (equal (getf cd :artist) arist)))
+#+end_src
+
+#+begin_src lisp :tangle no :eval no
+(select (artist-selector "Dixie Chicks"))
+#+end_src
+
+#+name: cddb-where-1
+#+begin_src lisp :tangle no :exports code
+(defun where (&key title artist rating (ripped nil ripped-p))
+  #'(lambda (cd)
+      (and
+       (if title (equal (getf cd :title) title) t)
+       (if artist (equal (getf cd :artist) artist) t)
+       (if rating (equal (getf cd :rating) rating) t)
+       (if ripped-p (equal (getf cd :ripped) ripped) t))))
+#+end_src
+
+#+name: cddb-update
+#+begin_src lisp :tangle no :exports code
+(defun update (selector-fn &key title artist rating (ripped nil ripped-p))
+  (setf *db*
+        (mapcar
+         #'(lambda (row)
+             (when (funcall selector-fn row)
+               (if title (setf (getf row :title) title))
+               (if artist (setf (getf row :artist) artist))
+               (if rating (setf (getf row :rating) rating))
+               (if ripped (setf (getf row :ripped) ripped)))
+             row) *db*)))
+#+end_src
+
+#+name: cddb-delete-rows
+#+begin_src lisp :tangle no :exports code
+(defun delete-rows (selector-fn)
+  (setf *db* (remove-if selector-fn *db*)))
+#+end_src
+
+#+name: cddb-make-comparison-expr
+#+begin_src lisp :tangle no :exports code
+(defun make-comparison-expr (field value)
+  `(equal (getf cd ,field) ,value))
+#+end_src
+
+#+name: cddb-make-comparisons-list
+#+begin_src lisp :tangle no :exports code
+(defun make-comparisons-list (fields)
+  (loop while fields
+        collecting (make-comparison-expr (pop fields) (pop fields))))
+#+end_src
+
+#+name: cddb-where-2
+#+begin_src lisp :tangle no :exports code
+(defmacro where (&rest clauses)
+  `#'(lambda (cd) (and ,@(make-comparisons-list clauses))))
+#+end_src
+
+
+#+name: cddb
+#+begin_src lisp :tangle ch3/cddb.lisp :mkdirp yes :noweb yes :exports code
+<<cddb-paramvars>>
+
+<<cddb-make-cd>>
+
+<<cddb-add-record>>
+
+<<cddb-dump-db>>
+
+<<cddb-prompt-read>>
+
+<<cddb-prompt-for-cd>>
+
+<<cddb-add-cds>>
+
+<<cddb-save-db>>
+
+<<cddb-load-db>>
+
+<<cddb-select>>
+
+<<cddb-artist-selector>>
+
+<<cddb-where-2>>
+
+<<cddb-update>>
+
+<<cddb-delete-rows>>
+
+<<cddb-make-comparison-expr>>
+
+<<cddb-make-comparisons-list>>
+#+end_src
+
 * chapter 8
 :PROPERTIES:
 :ID:       bbf6cfad-e0c5-4fec-a2ee-1412530f8ddd
